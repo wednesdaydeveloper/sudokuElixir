@@ -64,7 +64,13 @@ defmodule SudokuSolver do
 
     case unsolvedCells do
       [] -> %Result{solved: true, initials: initials, results: results}
-      list when list |> Enum.all?(&((!&1.unused |> Enum.empty?)))  -> ""
+      list when list |> Enum.all?(&(!(&1.unused |> Enum.empty?)))  ->
+        with  [head, tail] = list
+        do
+          head.unused
+            |> Enum.map(&(solve(initials, results ++ [%SolvedCell{row: head.row, col: head.col, blk: blk(head.row, head.col), val: &1}])))
+            |> Enum.filter(&(&1.solved))
+        end
       _ -> return %Result{solved: false}
     end
   end
