@@ -13,7 +13,7 @@ defmodule SudokuSolver do
   end
 
   defmodule Result do
-    defstruct solved: false, initials: [], results: []
+    defstruct initials: [], results: []
   end
 
   defp blk(row, col) do
@@ -51,7 +51,7 @@ defmodule SudokuSolver do
 
     solvedCells = initials ++ results
 
-    unsolvedCells = for row <- 0..8, col <- 0..8, solvedCells|> unsolved?(row, col) do
+    unsolvedCells = for row <- 0..8, col <- 0..8, solvedCells |> unsolved?(row, col) do
       with  blk = blk(row, col),
             unused = solvedCells |> unused(row, col, blk)
       do
@@ -62,21 +62,20 @@ defmodule SudokuSolver do
           unused: unused,
         }
       end
-    end |> Enum.sort(&(&1.unused |> Enum.count < &2.unused |> Enum.count))
+    end 
+      |> Enum.sort(&(&1.unused |> Enum.count < &2.unused |> Enum.count))
     cond do
       unsolvedCells |> Enum.empty? ->
-        %Result{solved: true, initials: initials, results: results}
+        %Result{initials: initials, results: results}
       unsolvedCells |> Enum.any?(&(&1.unused |> Enum.empty?)) ->
-        %Result{solved: false}
+        nil
       true -> 
         [head | _] = unsolvedCells
         answers = head.unused
           |> Enum.map(&(solve(initials, results ++ [%SolvedCell{row: head.row, col: head.col, blk: blk(head.row, head.col), val: &1}])))
-          |> Enum.filter(&(&1.solved))
+          |> Enum.filter(&(&1))
         if answers |> Enum.count == 1 do
           answers |> Enum.at(0)
-        else
-          %Result{solved: false}
         end
     end
   end
@@ -88,13 +87,15 @@ defmodule SudokuSolver do
   end
 
   def print(answer) do
-    cells = answer.initials ++ answer.results
-    for row <- 0..8 do
-      for col <- 0..8 do
-        cell = cells |> Enum.find(&(&1.row == row and &1.col == col))
-        IO.write cell.val
+    if answer do
+      cells = answer.initials ++ answer.results
+      for row <- 0..8 do
+        for col <- 0..8 do
+          cell = cells |> Enum.find(&(&1.row == row and &1.col == col))
+          IO.write cell.val
+        end
+        IO.puts ""
       end
-      IO.puts ""
     end
   end
 end
