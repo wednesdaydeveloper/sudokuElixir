@@ -39,18 +39,20 @@ defmodule SudokuSolver do
   end
 
   defp unused(solvedCells, row, col, blk) do
-    all_values = (1..9) |> Enum.to_list
+    all_values = 1..9 |> Enum.to_list
     usedVals = solvedCells
       |> Enum.filter(&(&1.row == row or &1.col == col || &1.blk == blk))
       |> Enum.map(&(&1.val))
+
     all_values -- usedVals
   end
 
-  def solve(initials, results) do
+  def solve(initials, results \\ []) do
+
     solvedCells = initials ++ results
 
     unsolvedCells = for row <- 0..8, col <- 0..8, solvedCells|> unsolved?(row, col) do
-      with  blk = blk(row, col)
+      with  blk = blk(row, col),
             unused = solvedCells |> unused(row, col, blk)
       do
         %UnsolvedCell{
@@ -60,24 +62,39 @@ defmodule SudokuSolver do
           unused: unused,
         }
       end
-    end
-
-    case unsolvedCells do
-      [] -> %Result{solved: true, initials: initials, results: results}
-      list when list |> Enum.all?(&(!(&1.unused |> Enum.empty?)))  ->
-        with  [head, tail] = list
-        do
-          head.unused
-            |> Enum.map(&(solve(initials, results ++ [%SolvedCell{row: head.row, col: head.col, blk: blk(head.row, head.col), val: &1}])))
-            |> Enum.filter(&(&1.solved))
+    end |> Enum.sort(&(&1.unused |> Enum.count < &2.unused |> Enum.count))
+    cond do
+      unsolvedCells |> Enum.empty? ->
+        %Result{solved: true, initials: initials, results: results}
+      unsolvedCells |> Enum.any?(&(&1.unused |> Enum.empty?)) ->
+        %Result{solved: false}
+      true -> 
+        [head | _] = unsolvedCells
+        answers = head.unused
+          |> Enum.map(&(solve(initials, results ++ [%SolvedCell{row: head.row, col: head.col, blk: blk(head.row, head.col), val: &1}])))
+          |> Enum.filter(&(&1.solved))
+        if answers |> Enum.count == 1 do
+          answers |> Enum.at(0)
+        else
+          %Result{solved: false}
         end
-      _ -> return %Result{solved: false}
     end
   end
 
   def initial(input) do
     for row <- 0..8, col <- 0..8, (val = cellValue(input, row, col)) > 0 do
        %SolvedCell{row: row, col: col, blk: blk(row, col), val: val}
+    end
+  end
+
+  def print(answer) do
+    cells = answer.initials ++ answer.results
+    for row <- 0..8 do
+      for col <- 0..8 do
+        cell = cells |> Enum.find(&(&1.row == row and &1.col == col))
+        IO.write cell.val
+      end
+      IO.puts ""
     end
   end
 end
@@ -94,6 +111,7 @@ input = [
     [4, 0, 0, 0, 0, 0, 0, 6, 0,],
   ]
 
-initials = SudokuSolver.initial(input)
-IO.inspect initials
-SudokuSolver.solve(initials, [])
+input 
+  |> SudokuSolver.initial()
+  |> SudokuSolver.solve()
+  |> SudokuSolver.print()
