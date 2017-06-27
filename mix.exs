@@ -2,12 +2,14 @@ defmodule FirstElixir.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :first_elixir,
+    [app: :SudokuSolver,
      version: "0.1.0",
      elixir: "~> 1.4",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     deps: deps()]
+     deps: deps(),
+     escript: [ main_module: SudokuSolver ]
+   ]
   end
 
   # Configuration for the OTP application

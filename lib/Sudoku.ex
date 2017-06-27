@@ -62,14 +62,15 @@ defmodule SudokuSolver do
           unused: unused,
         }
       end
-    end 
+    end
       |> Enum.sort(&(&1.unused |> Enum.count < &2.unused |> Enum.count))
+
     cond do
       unsolvedCells |> Enum.empty? ->
         %Result{initials: initials, results: results}
       unsolvedCells |> Enum.any?(&(&1.unused |> Enum.empty?)) ->
         nil
-      true -> 
+      true ->
         [head | _] = unsolvedCells
         answers = head.unused
           |> Enum.map(&(solve(initials, results ++ [%SolvedCell{row: head.row, col: head.col, blk: blk(head.row, head.col), val: &1}])))
@@ -96,23 +97,27 @@ defmodule SudokuSolver do
         end
         IO.puts ""
       end
+    else
+      IO.puts "failed!"
     end
   end
+
+  def main([]) do
+    input = [
+        [2, 0, 0, 0, 0, 9, 0, 8, 0,],
+        [0, 4, 6, 0, 0, 0, 0, 0, 0,],
+        [7, 0, 0, 4, 0, 2, 1, 0, 0,],
+        [6, 0, 0, 0, 0, 1, 4, 0, 8,],
+        [0, 0, 0, 6, 3, 0, 0, 2, 0,],
+        [9, 2, 7, 0, 0, 0, 0, 0, 3,],
+        [1, 0, 0, 9, 0, 0, 8, 4, 0,],
+        [0, 9, 0, 0, 0, 0, 0, 0, 0,],
+        [4, 0, 0, 0, 0, 0, 0, 6, 0,],
+      ]
+
+    input
+      |> SudokuSolver.initial()
+      |> SudokuSolver.solve()
+      |> SudokuSolver.print()
+    end
 end
-
-input = [
-    [2, 0, 0, 0, 0, 9, 0, 8, 0,],
-    [0, 4, 6, 0, 0, 0, 0, 0, 0,],
-    [7, 0, 0, 4, 0, 2, 1, 0, 0,],
-    [6, 0, 0, 0, 0, 1, 4, 0, 8,],
-    [0, 0, 0, 6, 3, 0, 0, 2, 0,],
-    [9, 2, 7, 0, 0, 0, 0, 0, 3,],
-    [1, 0, 0, 9, 0, 0, 8, 4, 0,],
-    [0, 9, 0, 0, 0, 0, 0, 0, 0,],
-    [4, 0, 0, 0, 0, 0, 0, 6, 0,],
-  ]
-
-input 
-  |> SudokuSolver.initial()
-  |> SudokuSolver.solve()
-  |> SudokuSolver.print()
