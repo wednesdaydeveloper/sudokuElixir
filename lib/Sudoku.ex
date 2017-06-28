@@ -84,7 +84,7 @@ defmodule SudokuSolver do
   def solve(initials, results \\ []) do
     initials ++ results
       |> make_unsolvedCells
-      |> Enum.sort(&(&1.unused |> Enum.count < &2.unused |> Enum.count))
+      |> Enum.sort_by(&(&1.unused |> Enum.count))
       |> answer(initials, results)
   end
 
