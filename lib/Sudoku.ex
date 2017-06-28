@@ -39,9 +39,14 @@ defmodule SudokuSolver do
 
     all_values -- usedVals
   end
-    
+
+  @doc """
+  未入力セルの情報のリストを作成する。
+  ## パラメータ
+    - solvedCells: すでに入力済みのセルの情報
+  """
   defp make_unsolvedCells(solvedCells) do
-    for row <- 0..(@cell_size-1), col <- 0..(@cell_size-1), solvedCells|> unsolved?(row, col) do
+    for row <- 0..(@cell_size-1), col <- 0..(@cell_size-1), solvedCells |> unsolved?(row, col) do
       with  blk     <- blk(row, col),
             unused  <- solvedCells |> unused(row, col, blk)
       do
@@ -49,12 +54,25 @@ defmodule SudokuSolver do
       end
     end
   end
+  
+  @doc """
+  unused（そのセルに入力可能な数値のリスト） が空の場合、その経路はNG
+  """
+  defp answer([ %{:unused => []} | _], _, _) do
+    nil
+  end
 
-  defp solved([], initials, results) do
+  @doc """
+  未入力セルのリストが空の場合、それが解。
+  """
+  defp answer([], initials, results) do
     %Result{initials: initials, results: results}
   end
 
-  defp solved([head| _], initials, results) do
+  @doc """
+  未入力セルのリストが空でない場合、unused（そのセルに入力可能な数値のリスト） の数値を一つずつ入力して再起的に解を探索する。
+  """
+  defp answer([head| _], initials, results) do
     answers = head.unused
       |> Enum.map(&(solve(initials, results ++ [%SolvedCell{row: head.row, col: head.col, blk: blk(head.row, head.col), val: &1}])))
       |> Enum.filter(&(&1))
@@ -64,16 +82,10 @@ defmodule SudokuSolver do
   end
 
   def solve(initials, results \\ []) do
-
-    unsolvedCells = initials ++ results |> make_unsolvedCells
-    
-    if unsolvedCells |> Enum.any?(&(&1.unused |> Enum.empty?)) do
-      nil
-    end
-
-    unsolvedCells
+    initials ++ results
+      |> make_unsolvedCells
       |> Enum.sort(&(&1.unused |> Enum.count < &2.unused |> Enum.count))
-      |> solved(initials, results)
+      |> answer(initials, results)
   end
 
   def initial(input) do
