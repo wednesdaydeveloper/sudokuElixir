@@ -1,8 +1,5 @@
 defmodule SudokuSolver do
-
-  defmodule Cell do
-    defstruct row: -1, col: -1, blk: -1
-  end
+  @cell_size 9
 
   defmodule UnsolvedCell do
     defstruct row: -1, col: -1, blk: -1, unused: []
@@ -30,59 +27,57 @@ defmodule SudokuSolver do
     ] |> Enum.at(row) |> Enum.at(col)
   end
 
-  defp cellValue(array, row, col) do
-    array |> Enum.at(row) |> Enum.at(col)
-  end
-
   defp unsolved?(solvedCells, row, col) do
     !(solvedCells|> Enum.any?(&(&1.row == row and &1.col == col)))
   end
 
   defp unused(solvedCells, row, col, blk) do
-    all_values = 1..9 |> Enum.to_list
+    all_values = 1..@cell_size |> Enum.to_list
     usedVals = solvedCells
       |> Enum.filter(&(&1.row == row or &1.col == col || &1.blk == blk))
       |> Enum.map(&(&1.val))
 
     all_values -- usedVals
   end
-
-  def solve(initials, results \\ []) do
-
-    solvedCells = initials ++ results
-
-    unsolvedCells = for row <- 0..8, col <- 0..8, solvedCells |> unsolved?(row, col) do
-      with  blk = blk(row, col),
-            unused = solvedCells |> unused(row, col, blk)
+    
+  defp make_unsolvedCells(solvedCells) do
+    for row <- 0..(@cell_size-1), col <- 0..(@cell_size-1), solvedCells|> unsolved?(row, col) do
+      with  blk     <- blk(row, col),
+            unused  <- solvedCells |> unused(row, col, blk)
       do
-        %UnsolvedCell{
-          row: row,
-          col: col,
-          blk: blk,
-          unused: unused,
-        }
+        %UnsolvedCell{row: row, col: col, blk: blk, unused: unused}
       end
-    end
-      |> Enum.sort(&(&1.unused |> Enum.count < &2.unused |> Enum.count))
-
-    cond do
-      unsolvedCells |> Enum.empty? ->
-        %Result{initials: initials, results: results}
-      unsolvedCells |> Enum.any?(&(&1.unused |> Enum.empty?)) ->
-        nil
-      true ->
-        [head | _] = unsolvedCells
-        answers = head.unused
-          |> Enum.map(&(solve(initials, results ++ [%SolvedCell{row: head.row, col: head.col, blk: blk(head.row, head.col), val: &1}])))
-          |> Enum.filter(&(&1))
-        if answers |> Enum.count == 1 do
-          answers |> Enum.at(0)
-        end
     end
   end
 
+  defp solved([], initials, results) do
+    %Result{initials: initials, results: results}
+  end
+
+  defp solved([head| _], initials, results) do
+    answers = head.unused
+      |> Enum.map(&(solve(initials, results ++ [%SolvedCell{row: head.row, col: head.col, blk: blk(head.row, head.col), val: &1}])))
+      |> Enum.filter(&(&1))
+    if answers |> Enum.count == 1 do
+      answers |> Enum.at(0)
+    end      
+  end
+
+  def solve(initials, results \\ []) do
+
+    unsolvedCells = initials ++ results |> make_unsolvedCells
+    
+    if unsolvedCells |> Enum.any?(&(&1.unused |> Enum.empty?)) do
+      nil
+    end
+
+    unsolvedCells
+      |> Enum.sort(&(&1.unused |> Enum.count < &2.unused |> Enum.count))
+      |> solved(initials, results)
+  end
+
   def initial(input) do
-    for row <- 0..8, col <- 0..8, (val = cellValue(input, row, col)) > 0 do
+    for row <- 0..(@cell_size-1), col <- 0..(@cell_size-1), (val = input |> Enum.at(row) |> Enum.at(col)) > 0 do
        %SolvedCell{row: row, col: col, blk: blk(row, col), val: val}
     end
   end
@@ -90,8 +85,8 @@ defmodule SudokuSolver do
   def print(answer) do
     if answer do
       cells = answer.initials ++ answer.results
-      for row <- 0..8 do
-        for col <- 0..8 do
+      for row <- 0..(@cell_size-1) do
+        for col <- 0..(@cell_size-1) do
           cell = cells |> Enum.find(&(&1.row == row and &1.col == col))
           IO.write cell.val
         end
@@ -119,5 +114,5 @@ defmodule SudokuSolver do
       |> SudokuSolver.initial()
       |> SudokuSolver.solve()
       |> SudokuSolver.print()
-    end
+    end    
 end
